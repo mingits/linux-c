@@ -111,8 +111,8 @@
         7. 分割字符串
     2. 标准 I/O 库函数
         1. 文件的基本概念
-        2. fopen / fclose
-        3. stdin / stdout / stderr
+        2. fopen/fclose
+        3. stdin/stdout/stderr
         4. errno 与 perror 函数
         5. 以字节为单位的 I/O 函数
         6. 操作读写位置的函数
