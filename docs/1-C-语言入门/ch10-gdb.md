@@ -128,7 +128,7 @@ list -- List specified function or line
 
 也可以什么都不输直接敲回车，`gdb` 提供了一个很方便的功能，在提示符下直接敲回车表示重复上一条命令。
 
-```
+```bash
 (gdb) （直接回车）
 11	int main(void)
 12	{
@@ -439,7 +439,7 @@ Breakpoint 2, main () at main.c:9
 
 然后输入新的字符串准备转换：
 
-```
+```bash
 (gdb) n
 234
 10			for (i = 0; input[i] != '\0'; i++)
