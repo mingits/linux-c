@@ -578,7 +578,7 @@ fputs(strerror(n), stderr);
 
 	`fopen` 也可以打开一个目录，传给 `fopen` 的第一个参数目录名末尾可以加 `/` 也可以不加 `/`，但只允许以只读方式打开。试试如果以可写的方式打开一个存在的目录会怎么样呢？
 	
-	```
+	```c
 	fp = fopen("/home/akaedu/", "r+");
 	if (fp == NULL) {
 		perror("Open /home/akaedu");
@@ -652,6 +652,8 @@ int main(void)
 ```
 
 从终端设备读有点特殊。当调用 `getchar()` 或 `fgetc(stdin)` 时，如果用户没有输入字符，`getchar` 函数就阻塞等待，所谓阻塞是指这个函数调用不返回，也就不能执行后面的代码，这个进程阻塞了，操作系统可以调度别的进程执行。从终端设备读还有一个特点，用户输入一般字符并不会使 `getchar` 函数返回，仍然阻塞着，只有当用户输入回车或者到达文件末尾时 `getchar` 才返回<sup>[34]</sup>。这个程序的执行过程分析如下：
+
+> <sup>[34]</sup> 这些特性取决于终端的工作模式，终端可以配置成一次一行的模式，也可以配置成一次一个字符的模式，默认是一次一行的模式（本书的实验都是在这种模式下做的），关于终端的配置可参考 *APUE2e*。
 
 ```bash
 $ ./a.out
@@ -795,7 +797,8 @@ int puts(const char *s);
 
 size_t fread(void *ptr, size_t size, size_t nmemb, FILE *stream);
 size_t fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream);
-返回值：读或写的记录数，成功时返回的记录数等于 nmemb，出错或读到文件末尾时返回的记录数小于 nmemb，也可能返回 0
+返回值：读或写的记录数，成功时返回的记录数等于 nmemb，
+出错或读到文件末尾时返回的记录数小于 nmemb，也可能返回 0
 ```
 
 `fread` 和 `fwrite` 用于读写记录，这里的记录是指一串固定长度的字节，比如一个 int、一个结构体或者一个定长数组。参数 `size` 指出一条记录的长度，而 `nmemb` 指出要读或写多少条记录，这些记录在 `ptr` 所指的内存空间中连续存放，共占 `size * nmemb` 个字节，`fread` 从文件 `stream` 中读出 `size * nmemb` 个字节保存到 `ptr` 中，而 `fwrite` 把 `ptr` 中的 `size * nmemb` 个字节写到文件 `stream` 中。
@@ -1107,6 +1110,8 @@ hello world$
 
 我们知道 `main` 函数被启动代码这样调用：`exit(main(argc, argv));`。`main` 函数 `return` 时启动代码会调用 `exit`，`exit` 函数首先关闭所有尚未关闭的 `FILE *` 指针（关闭之前要做 Flush 操作），然后通过 `_exit` 系统调用进入内核退出当前进程<sup>[35]</sup>。
 
+> <sup>[35]</sup> 其实在调 `_exit` 进内核之前还要调用户程序中通过 `atexit(3)` 注册的退出处理函数，本书不做详细介绍，读者可参考 *APUE2e*。
+
 在上面的例子中，由于标准输出是行缓冲的，`printf("hello world");` 打印的字符串中没有换行符，所以只把字符串写到标准输出的 I/O 缓冲区中而没有写回内核（写到终端设备），如果敲 Ctrl-C，进程是异常终止的，并没有调用 `exit`，也就没有机会 Flush I/O 缓冲区，因此字符串最终没有打印到屏幕上。如果把打印语句改成 `printf("hello world\n");`，有换行符，就会立刻写到终端设备，或者如果把 `while(1);` 去掉也可以写到终端设备，因为程序退出时会调用 `exit` Flush 所有 I/O 缓冲区。在本书的其它例子中，`printf` 打印的字符串末尾都有换行符，以保证字符串在 `printf` 调用结束时就写到终端设备。
 
 我们再做个实验，在程序中直接调用 `_exit` 退出。
@@ -1263,17 +1268,11 @@ int main()
 	/home/akaedu/stack.h: cannot find
 	```
 	
-	如果有的头文件找不到，就像上面例子那样打印 `/home/akaedu/stack.h: cannot find`。首先复习一下[第 2.2 节 “头文件”](ch20s02.html#link.header)讲过的头文件查找顺序，本题目不必考虑 `-I` 选项指定的目录，只在 `.c` 文件所在的目录以及系统目录 `/usr/include` 中查找。
-
-------
-
-[[34](ch25s02.html#id2831641)] 这些特性取决于终端的工作模式，终端可以配置成一次一行的模式，也可以配置成一次一个字符的模式，默认是一次一行的模式（本书的实验都是在这种模式下做的），关于终端的配置可参考[[APUE2e\]](bi01.html#bibli.apue)。
-
-[[35](ch25s02.html#id2834688)] 其实在调`_exit`进内核之前还要调用户程序中通过`atexit(3)`注册的退出处理函数，本书不做详细介绍，读者可参考[[APUE2e\]](bi01.html#bibli.apue)。
+	如果有的头文件找不到，就像上面例子那样打印 `/home/akaedu/stack.h: cannot find`。首先复习一下[第 20 章「链接详解」第 2.2 节「头文件」](2-C-语言本质/ch20-链接详解#_22-头文件)讲过的头文件查找顺序，本题目不必考虑 `-I` 选项指定的目录，只在 `.c` 文件所在的目录以及系统目录 `/usr/include` 中查找。
 
 ## 3. 数值字符串转换函数
 
-```
+```c
 #include <stdlib.h>
 
 int atoi(const char *nptr);
@@ -1281,31 +1280,29 @@ double atof(const char *nptr);
 返回值：转换结果
 ```
 
-`atoi`把一个字符串开头可以识别成十进制整数的部分转换成`int`型，相当于下面要讲的`strtol(nptr, (char **) NULL, 10);`。例如`atoi("123abc")`的返回值是123，字符串开头可以有若干空格，例如`atoi(" -90.6-")`的返回值是-90。如果字符串开头没有可识别的整数，例如`atoi("asdf")`，则返回0，而`atoi("0***")`也返回0，根据返回值并不能区分这两种情况，所以使用`atoi`函数不能检查出错的情况。下面要讲的`strtol`函数可以设置`errno`，因此可以检查出错的情况，在严格的场合下应该用`strtol`，而`atoi`用起来更简便，所以也很常用。
+`atoi` 把一个字符串开头可以识别成十进制整数的部分转换成 `int` 型，相当于下面要讲的 `strtol(nptr, (char **) NULL, 10);`。例如 `atoi("123abc")` 的返回值是 123，字符串开头可以有若干空格，例如 `atoi(" -90.6-")` 的返回值是 -90。如果字符串开头没有可识别的整数，例如 `atoi("asdf")`，则返回 0，而 `atoi("0***")` 也返回 0，根据返回值并不能区分这两种情况，所以使用 `atoi` 函数不能检查出错的情况。下面要讲的 `strtol` 函数可以设置 `errno`，因此可以检查出错的情况，在严格的场合下应该用 `strtol`，而 `atoi` 用起来更简便，所以也很常用。
 
-`atof`把一个字符串开头可以识别成浮点数的部分转换成`double`型，相当于下面要讲的`strtod(nptr, (char **) NULL);`。字符串开头可以识别的浮点数格式和C语言的浮点数常量相同，例如`atof("31.4 ")`的返回值是31.4，`atof("3.14e+1AB")`的返回值也是31.4。`atof`也不能检查出错的情况，而`strtod`可以。
+`atof` 把一个字符串开头可以识别成浮点数的部分转换成 `double` 型，相当于下面要讲的 `strtod(nptr, (char **) NULL);`。字符串开头可以识别的浮点数格式和 C 语言的浮点数常量相同，例如 `atof("31.4 ")` 的返回值是 31.4，`atof("3.14e+1AB")` 的返回值也是 31.4。`atof` 也不能检查出错的情况，而 `strtod` 可以。
 
-```
+```c
 #include <stdlib.h>
 
 long int strtol(const char *nptr, char **endptr, int base);
 double strtod(const char *nptr, char **endptr);
-返回值：转换结果，出错时设置errno
+返回值：转换结果，出错时设置 errno
 ```
 
-`strtol`是`atoi`的增强版，主要体现在这几方面：
+`strtol` 是 `atoi` 的增强版，主要体现在这几方面：
 
-- 不仅可以识别十进制整数，还可以识别其它进制的整数，取决于`base`参数，比如`strtol("0XDEADbeE~~", NULL, 16)`返回0xdeadbee的值，`strtol("0777~~", NULL, 8)`返回0777的值。
-- `endptr`是一个传出参数，函数返回时指向后面未被识别的第一个字符。例如`char *pos; strtol("123abc", &pos, 10);`，`strtol`返回123，`pos`指向字符串中的字母a。如果字符串开头没有可识别的整数，例如`char *pos; strtol("ABCabc", &pos, 10);`，则`strtol`返回0，`pos`指向字符串开头，可以据此判断这种出错的情况，而这是`atoi`处理不了的。
-- 如果字符串中的整数值超出`long int`的表示范围（上溢或下溢），则`strtol`返回它所能表示的最大（或最小）整数，并设置`errno`为`ERANGE`，例如`strtol("0XDEADbeef~~", NULL, 16)`返回0x7fffffff并设置`errno`为`ERANGE`。
+- 不仅可以识别十进制整数，还可以识别其它进制的整数，取决于 `base` 参数，比如 `strtol("0XDEADbeE~~", NULL, 16)` 返回 0xdeadbee 的值，`strtol("0777~~", NULL, 8)` 返回 0777 的值。
+- `endptr` 是一个传出参数，函数返回时指向后面未被识别的第一个字符。例如 `char *pos; strtol("123abc", &pos, 10);`，`strtol` 返回 123，`pos` 指向字符串中的字母 a。如果字符串开头没有可识别的整数，例如 `char *pos; strtol("ABCabc", &pos, 10);`，则 `strtol` 返回 0，`pos` 指向字符串开头，可以据此判断这种出错的情况，而这是 `atoi` 处理不了的。
+- 如果字符串中的整数值超出 `long int` 的表示范围（上溢或下溢），则 `strtol` 返回它所能表示的最大（或最小）整数，并设置 `errno` 为 `ERANGE`，例如 `strtol("0XDEADbeef~~", NULL, 16)` 返回 0x7fffffff 并设置 `errno` 为 `ERANGE`。
 
-回想一下使用`fopen`的套路`if ( (fp = fopen(...)) == NULL) { 读取errno }`，`fopen`在出错时会返回`NULL`，因此我们知道需要读`errno`，但`strtol`在成功调用时也可能返回0x7fffffff，我们如何知道需要读`errno`呢？最严谨的做法是首先把`errno`置0，再调用`strtol`，再查看`errno`是否变成了错误码。Man Page上有一个很好的例子：
+回想一下使用 `fopen` 的套路 `if ( (fp = fopen(...)) == NULL) { 读取errno }`，`fopen` 在出错时会返回 `NULL`，因此我们知道需要读 `errno`，但 `strtol` 在成功调用时也可能返回 0x7fffffff，我们如何知道需要读 `errno` 呢？最严谨的做法是首先把 `errno`置 0，再调用 `strtol`，再查看 `errno` 是否变成了错误码。Man Page 上有一个很好的例子：
 
+<p id="e25-10">例 25.10. strtol 的出错处理</p>
 
-
-**例 25.10. strtol的出错处理**
-
-```
+```c
 #include <stdlib.h>
 #include <limits.h>
 #include <stdio.h>
@@ -1352,30 +1349,29 @@ int main(int argc, char *argv[])
 }
 ```
 
-`strtod`是`atof`的增强版，增强的功能和`strtol`类似。
+`strtod` 是 `atof` 的增强版，增强的功能和 `strtol` 类似。
 
 ## 4. 分配内存的函数
 
-除了`malloc`之外，C标准库还提供了另外两个在堆空间分配内存的函数，它们分配的内存同样由`free`释放。
+除了 `malloc` 之外，C 标准库还提供了另外两个在堆空间分配内存的函数，它们分配的内存同样由 `free` 释放。
 
-```
+```c
 #include <stdlib.h>
 
 void *calloc(size_t nmemb, size_t size);
 void *realloc(void *ptr, size_t size);
-返回值：成功返回所分配内存空间的首地址，出错返回NULL
+返回值：成功返回所分配内存空间的首地址，出错返回 NULL
 ```
 
-`calloc`的参数很像`fread`/`fwrite`的参数，分配`nmemb`个元素的内存空间，每个元素占`size`字节，并且`calloc`负责把这块内存空间用字节0填充，而`malloc`并不负责把分配的内存空间清零。
+`calloc` 的参数很像 `fread`/`fwrite` 的参数，分配 `nmemb` 个元素的内存空间，每个元素占 `size` 字节，并且 `calloc` 负责把这块内存空间用字节 0 填充，而 `malloc` 并不负责把分配的内存空间清零。
 
-有时候用`malloc`或`calloc`分配的内存空间使用了一段时间之后需要改变它的大小，一种办法是调用`malloc`分配一块新的内存空间，把原内存空间中的数据拷到新的内存空间，然后调用`free`释放原内存空间。使用`realloc`函数简化了这些步骤，把原内存空间的指针`ptr`传给`realloc`，通过参数`size`指定新的大小（字节数），`realloc`返回新内存空间的首地址，并释放原内存空间。新内存空间中的数据尽量和原来保持一致，如果`size`比原来小，则前`size`个字节不变，后面的数据被截断，如果`size`比原来大，则原来的数据全部保留，后面长出来的一块内存空间未初始化（`realloc`不负责清零）。注意，参数`ptr`要么是`NULL`，要么必须是先前调用`malloc`、`calloc`或`realloc`返回的指针，不能把任意指针传给`realloc`要求重新分配内存空间。作为两个特例，如果调用`realloc(NULL, size)`，则相当于调用`malloc(size)`，如果调用`realloc(ptr, 0)`，`ptr`不是`NULL`，则相当于调用`free(ptr)`。
+有时候用 `malloc` 或 `calloc` 分配的内存空间使用了一段时间之后需要改变它的大小，一种办法是调用 `malloc` 分配一块新的内存空间，把原内存空间中的数据拷到新的内存空间，然后调用 `free` 释放原内存空间。使用 `realloc` 函数简化了这些步骤，把原内存空间的指针 `ptr` 传给 `realloc`，通过参数 `size` 指定新的大小（字节数），`realloc` 返回新内存空间的首地址，并释放原内存空间。新内存空间中的数据尽量和原来保持一致，如果 `size` 比原来小，则前 `size` 个字节不变，后面的数据被截断，如果 `size` 比原来大，则原来的数据全部保留，后面长出来的一块内存空间未初始化（`realloc` 不负责清零）。注意，参数 `ptr` 要么是 `NULL`，要么必须是先前调用 `malloc`、`calloc` 或 `realloc` 返回的指针，不能把任意指针传给 `realloc` 要求重新分配内存空间。作为两个特例，如果调用 `realloc(NULL, size)`，则相当于调用 `malloc(size)`，如果调用 `realloc(ptr, 0)`，`ptr` 不是 `NULL`，则相当于调用 `free(ptr)`。
 
-```
+```c
 #include <alloca.h>
 
 void *alloca(size_t size);
-返回值：返回所分配内存空间的首地址，如果size太大导致栈空间耗尽，结果是未定义的
+返回值：返回所分配内存空间的首地址，如果 size 太大导致栈空间耗尽，结果是未定义的
 ```
 
-参数`size`是请求分配的字节数，`alloca`函数不是在堆上分配空间，而是在调用者函数的栈帧上分配空间，类似于C99的变长数组，当调用者函数返回时自动释放栈帧，所以不需要`free`。这个函数不属于C标准库，而是在POSIX标准中定义的。
-
+参数 `size` 是请求分配的字节数，`alloca` 函数不是在堆上分配空间，而是在调用者函数的栈帧上分配空间，类似于 C99 的变长数组，当调用者函数返回时自动释放栈帧，所以不需要 `free`。这个函数不属于 C 标准库，而是在 POSIX 标准中定义的。
