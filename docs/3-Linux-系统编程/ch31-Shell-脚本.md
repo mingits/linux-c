@@ -1,20 +1,28 @@
-# 第 31 章 Shell脚本
+# 第 31 章 Shell 脚本
 
-## 1. Shell的历史
+## 1. Shell 的历史
 
-Shell的作用是解释执行用户的命令，用户输入一条命令，Shell就解释执行一条，这种方式称为交互式（Interactive），Shell还有一种执行命令的方式称为批处理（Batch），用户事先写一个Shell脚本（Script），其中有很多条命令，让Shell一次把这些命令执行完，而不必一条一条地敲命令。Shell脚本和编程语言很相似，也有变量和流程控制语句，但Shell脚本是解释执行的，不需要编译，Shell程序从脚本中一行一行读取并执行这些命令，相当于一个用户把脚本中的命令一行一行敲到Shell提示符下执行。
+Shell 的作用是解释执行用户的命令，用户输入一条命令，Shell 就解释执行一条，这种方式称为交互式（Interactive），Shell 还有一种执行命令的方式称为批处理（Batch），用户事先写一个 Shell 脚本（Script），其中有很多条命令，让 Shell 一次把这些命令执行完，而不必一条一条地敲命令。Shell 脚本和编程语言很相似，也有变量和流程控制语句，但 Shell 脚本是解释执行的，不需要编译，Shell 程序从脚本中一行一行读取并执行这些命令，相当于一个用户把脚本中的命令一行一行敲到 Shell 提示符下执行。
 
-由于历史原因，UNIX系统上有很多种Shell：
+由于历史原因，UNIX 系统上有很多种 Shell：
 
-1. `sh`（Bourne Shell）：由Steve Bourne开发，各种UNIX系统都配有`sh`。
-2. `csh`（C Shell）：由Bill Joy开发，随BSD UNIX发布，它的流程控制语句很像C语言，支持很多Bourne Shell所不支持的功能：作业控制，命令历史，命令行编辑。
-3. `ksh`（Korn Shell）：由David Korn开发，向后兼容`sh`的功能，并且添加了`csh`引入的新功能，是目前很多UNIX系统标准配置的Shell，在这些系统上`/bin/sh`往往是指向`/bin/ksh`的符号链接。
-4. `tcsh`（TENEX C Shell）：是`csh`的增强版本，引入了命令补全等功能，在FreeBSD、Mac OS X等系统上替代了`csh`。
-5. `bash`（Bourne Again Shell）：由GNU开发的Shell，主要目标是与POSIX标准保持一致，同时兼顾对`sh`的兼容，`bash`从`csh`和`ksh`借鉴了很多功能，是各种Linux发行版标准配置的Shell，在Linux系统上`/bin/sh`往往是指向`/bin/bash`的符号链接[[38](ch31s01.html#ftn.id2871814)]。虽然如此，`bash`和`sh`还是有很多不同的，一方面，`bash`扩展了一些命令和参数，另一方面，`bash`并不完全和`sh`兼容，有些行为并不一致，所以`bash`需要模拟`sh`的行为：当我们通过`sh`这个程序名启动`bash`时，`bash`可以假装自己是`sh`，不认扩展的命令，并且行为与`sh`保持一致。
+1. `sh`（Bourne Shell）：由 Steve Bourne 开发，各种 UNIX 系统都配有 `sh`。
+2. `csh`（C Shell）：由 Bill Joy 开发，随 BSD UNIX 发布，它的流程控制语句很像 C 语言，支持很多 Bourne Shell 所不支持的功能：作业控制，命令历史，命令行编辑。
+3. `ksh`（Korn Shell）：由 David Korn 开发，向后兼容 `sh` 的功能，并且添加了 `csh` 引入的新功能，是目前很多 UNIX 系统标准配置的 Shell，在这些系统上 `/bin/sh` 往往是指向 `/bin/ksh` 的符号链接。
+4. `tcsh`（TENEX C Shell）：是 `csh` 的增强版本，引入了命令补全等功能，在 FreeBSD、Mac OS X 等系统上替代了 `csh`。
+5. `bash`（Bourne Again Shell）：由 GNU 开发的 Shell，主要目标是与 POSIX 标准保持一致，同时兼顾对 `sh` 的兼容，`bash` 从 `csh` 和 `ksh` 借鉴了很多功能，是各种 Linux 发行版标准配置的 Shell，在 Linux 系统上 `/bin/sh` 往往是指向 `/bin/bash` 的符号链接<sup>[38]</sup>。虽然如此，`bash` 和 `sh` 还是有很多不同的，一方面，`bash` 扩展了一些命令和参数，另一方面，`bash` 并不完全和 `sh` 兼容，有些行为并不一致，所以 `bash` 需要模拟 `sh` 的行为：当我们通过 `sh` 这个程序名启动 `bash` 时，`bash` 可以假装自己是 `sh`，不认扩展的命令，并且行为与 `sh` 保持一致。
 
-文件`/etc/shells`给出了系统中所有已知（不一定已安装）的Shell，除了上面提到的Shell之外还有很多变种。
+> <sup>[38]</sup> 最新的发行版有一些变化，例如 Ubuntu 7.10 的 `/bin/sh` 是指向 `/bin/dash` 的符号链接，`dash` 也是一种类似 `bash` 的 Shell。
+> 
+> ```bash
+> $ ls /bin/sh /bin/dash -l
+> -rwxr-xr-x 1 root root 79988 2008-03-12 19:22 /bin/dash
+> lrwxrwxrwx 1 root root     4 2008-07-04 05:58 /bin/sh -> dash
+> ```
 
-```
+文件 `/etc/shells` 给出了系统中所有已知（不一定已安装）的 Shell，除了上面提到的 Shell 之外还有很多变种。
+
+```bash
 # /etc/shells: valid login shells
 /bin/csh
 /bin/sh
@@ -31,35 +39,25 @@ Shell的作用是解释执行用户的命令，用户输入一条命令，Shell�
 /usr/bin/screen
 ```
 
-用户的默认Shell设置在`/etc/passwd`文件中，例如下面这行对用户mia的设置:
+用户的默认 Shell 设置在 `/etc/passwd` 文件中，例如下面这行对用户 mia 的设置：
 
-```
+```bash
 mia:L2NOfqdlPrHwE:504:504:Mia Maya:/home/mia:/bin/bash
 ```
 
-用户mia从字符终端登录或者打开图形终端窗口时就会自动执行`/bin/bash`。如果要切换到其它Shell，可以在命令行输入程序名，例如：
+用户 mia 从字符终端登录或者打开图形终端窗口时就会自动执行 `/bin/bash`。如果要切换到其它 Shell，可以在命令行输入程序名，例如：
 
-```
-~$ sh（在bash提示符下输入sh命令）
-$（出现sh的提示符）
-$（按Ctrl-d或者输入exit命令）
-~$（回到bash提示符）
-~$（再次按Ctrl-d或者输入exit命令会退出登录或者关闭图形终端窗口）
-```
-
-本章只介绍`bash`和`sh`的用法和相关语法，不介绍其它Shell。所以下文提到Shell都是指`bash`或`sh`。
-
-------
-
-[[38](ch31s01.html#id2871814)] 最新的发行版有一些变化，例如Ubuntu 7.10的`/bin/sh`是指向`/bin/dash`的符号链接，`dash`也是一种类似`bash`的Shell。
-
-```
-$ ls /bin/sh /bin/dash -l
--rwxr-xr-x 1 root root 79988 2008-03-12 19:22 /bin/dash
-lrwxrwxrwx 1 root root     4 2008-07-04 05:58 /bin/sh -> dash
+```bash
+~$ sh（在 bash 提示符下输入 sh 命令）
+$（出现 sh 的提示符）
+$（按 Ctrl-d 或者输入 exit 命令）
+~$（回到 bash 提示符）
+~$（再次按 Ctrl-d 或者输入 exit 命令会退出登录或者关闭图形终端窗口）
 ```
 
-## 2. Shell如何执行命令
+本章只介绍 `bash` 和 `sh` 的用法和相关语法，不介绍其它 Shell。所以下文提到 Shell 都是指 `bash` 或 `sh`。
+
+## 2. Shell 如何执行命令
 
 ### 2.1. 执行交互式命令
 
@@ -73,15 +71,13 @@ $ man bash-builtins
 
 #### 习题
 
-1、在完成[第 5 节 “练习：实现简单的Shell”](ch30s05.html#process.implementshell)时也许有的读者已经试过了，在自己实现的Shell中不能执行`cd`命令，因为`cd`是一个内建命令，没有程序文件，不能用`exec`执行。现在请完善该程序，实现`cd`命令的功能，用`chdir(2)`函数可以改变进程的当前工作目录。
+1、在完成[第 5 节 「练习：实现简单的Shell」](ch30s05.html#process.implementshell)时也许有的读者已经试过了，在自己实现的Shell中不能执行`cd`命令，因为`cd`是一个内建命令，没有程序文件，不能用`exec`执行。现在请完善该程序，实现`cd`命令的功能，用`chdir(2)`函数可以改变进程的当前工作目录。
 
 2、思考一下，为什么`cd`命令要实现成内建命令？可不可以实现一个独立的`cd`程序，例如`/bin/cd`，就像`/bin/ls`一样？
 
 ### 2.2. 执行脚本
 
 首先编写一个简单的脚本，保存为`script.sh`：
-
-
 
 **例 31.1. 简单的Shell脚本**
 
@@ -125,8 +121,6 @@ $ sh ./script.sh
 ```
 
 这两种方法本质上是一样的，执行上述脚本的步骤为：
-
-
 
 **图 31.1. Shell脚本的执行过程**
 
@@ -182,7 +176,7 @@ $ echo $?
 
 - 环境变量
 
-  在[第 2 节 “环境变量”](ch30s02.html#process.environ)中讲过，环境变量可以从父进程传给子进程，因此Shell进程的环境变量可以从当前Shell进程传给`fork`出来的子进程。用`printenv`命令可以显示当前Shell进程的环境变量。
+  在[第 2 节 「环境变量」](ch30s02.html#process.environ)中讲过，环境变量可以从父进程传给子进程，因此Shell进程的环境变量可以从当前Shell进程传给`fork`出来的子进程。用`printenv`命令可以显示当前Shell进程的环境变量。
 
 - 本地变量
 
@@ -229,8 +223,6 @@ $ echo ${SHELL}abc
 ### 3.2. 文件名代换（Globbing）：* ? []
 
 这些用于匹配的字符称为通配符（Wildcard），具体如下：
-
-
 
 **表 31.1. 通配符**
 
@@ -287,7 +279,7 @@ $ echo \\
 \
 ```
 
-比如创建一个文件名为“$ $”的文件可以这样：
+比如创建一个文件名为「$ $」的文件可以这样：
 
 ```
 $ touch \$\ \$
@@ -465,8 +457,6 @@ $ echo $?
 
 *虽然看起来很奇怪，但左方括号[确实是一个命令的名字，传给命令的各参数之间应该用空格隔开*，比如，`$VAR`、`-gt`、`3`、`]`是`[`命令的四个参数，它们之间必须用空格隔开。命令`test`或`[`的参数形式是相同的，只不过`test`命令不需要`]`参数。以`[`命令为例，常见的测试命令如下表所示：
 
-
-
 **表 31.2. 测试命令**
 
 | `[ -d DIR ]`             | 如果`DIR`存在并且是一个目录则为真                            |
@@ -479,8 +469,6 @@ $ echo $?
 | `[ ARG1 OP ARG2 ]`       | `ARG1`和`ARG2`应该是整数或者取值为整数的变量，`OP`是`-eq`（等于）`-ne`（不等于）`-lt`（小于）`-le`（小于等于）`-gt`（大于）`-ge`（大于等于）之中的一个 |
 
 和C语言类似，测试条件之间还可以做与、或、非逻辑运算：
-
-
 
 **表 31.3. 带与、或、非的测试命令**
 
@@ -557,7 +545,7 @@ exit 0
 test "$(whoami)" != 'root' && (echo you are using a non-privileged account; exit 1)
 ```
 
-&&相当于“if...then...”，而||相当于“if not...then...”。&&和||用于连接两个命令，而上面讲的`-a`和`-o`仅用于在测试表达式中连接两个测试条件，要注意它们的区别，例如，
+&&相当于「if...then...」，而||相当于「if not...then...」。&&和||用于连接两个命令，而上面讲的`-a`和`-o`仅用于在测试表达式中连接两个测试条件，要注意它们的区别，例如，
 
 ```
 test "$VAR" -gt 1 -a "$VAR" -lt 3
@@ -680,8 +668,6 @@ Shell还有until循环，类似C语言的do...while循环。本章从略。
 ### 5.6. 位置参数和特殊变量
 
 有很多特殊变量是被Shell自动赋值的，我们已经遇到了`$?`和`$1`，现在总结一下：
-
-
 
 **表 31.4. 常用的位置参数和特殊变量**
 
